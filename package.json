@@ -4,6 +4,11 @@
 	"description": "即开即用的 NarraFork Android 运行环境（Termux + proot Debian 12）",
 	"type": "module",
 	"private": true,
+	"narraforkBinary": {
+		"version": "0.8.0",
+		"sha512": "TADUbIYTDvYnb0oOyeP0WtNnKfBW2qvNmXMH6K94zhsnJCPRQ+bNte+//WPomrJZcLI65X06wjOxczP1ECYtHA==",
+		"downloadUrl": "https://github.com/NarraFork/narrafork-android/releases/download/vendor-narrafork-0.8.0/narrafork-0.8.0-linux-arm64"
+	},
 	"scripts": {
 		"build:binary": "bun scripts/build-binary.ts",
 		"build:rootfs": "bun scripts/build-rootfs.ts",

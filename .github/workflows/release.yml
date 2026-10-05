@@ -1,0 +1,42 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  rootfs:
+    name: 构建并发布 Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: 获取 narrafork 二进制
+        run: bun scripts/build-binary.ts --from-url
+
+      - name: 交叉构建 rootfs（podman + qemu）
+        run: bun scripts/build-rootfs.ts
+
+      - name: 解包冒烟测试
+        run: bash tests/verify-rootfs.sh
+
+      - name: 发布 GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/narrafork-android-rootfs-*-arm64.tar.gz \
+            dist/narrafork-android-rootfs-*-arm64.tar.gz.sha256 \
+            dist/narrafork-android-rootfs-*-arm64.json \
+            --title "narrafork-android ${GITHUB_REF_NAME}" \
+            --generate-notes

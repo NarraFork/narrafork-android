@@ -1,0 +1,38 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rootfs:
+    name: 构建 arm64 rootfs 并冒烟
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      # 注册 arm64 binfmt，供 podman 交叉构建使用
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      # 从本仓 vendor Release 拉取固定版本的 narrafork linux-arm64 二进制
+      #（sha512 强制校验；版本/sha512/下载地址固定在 package.json 的 narraforkBinary 字段）
+      - name: 获取 narrafork 二进制
+        run: bun scripts/build-binary.ts --from-url
+
+      - name: 交叉构建 rootfs（podman + qemu）
+        run: bun scripts/build-rootfs.ts
+
+      - name: 解包冒烟测试
+        run: bash tests/verify-rootfs.sh
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: narrafork-android-rootfs
+          path: dist/
+          retention-days: 14
