@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#FF0D1117">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="备份 / 恢复"
+        android:textColor="#FFE6EDF3"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="导出与导入都会先停止 NarraFork，以保证数据库一致。完成后自动重启。"
+        android:textColor="#FF8B949E"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/nfb_dir"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="#FF6E7681"
+        android:textSize="11sp"
+        android:textIsSelectable="true" />
+
+    <!-- 导出 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="导出"
+        android:textColor="#FF58A6FF"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/nfb_exp_rootfs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="导出整个容器 (rootfs)" />
+
+    <Button
+        android:id="@+id/nfb_exp_home"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="导出用户目录 (~/)" />
+
+    <Button
+        android:id="@+id/nfb_exp_nfdata"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="导出 NarraFork 数据 (~/.narrafork)" />
+
+    <!-- 导入 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="导入（会覆盖现有数据，导入前自动备份）"
+        android:textColor="#FFD29922"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/nfb_imp_rootfs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="导入整个容器 (rootfs)" />
+
+    <Button
+        android:id="@+id/nfb_imp_home"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="导入用户目录 (~/)" />
+
+    <Button
+        android:id="@+id/nfb_imp_nfdata"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="导入 NarraFork 数据 (~/.narrafork)" />
+
+    <!-- 最近产物 + 分享 -->
+    <Button
+        android:id="@+id/nfb_share"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:enabled="false"
+        android:text="分享最近的导出文件" />
+
+    <!-- 日志 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="日志"
+        android:textColor="#FF8B949E"
+        android:textSize="13sp" />
+
+    <ScrollView
+        android:id="@+id/nfb_log_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="6dp"
+        android:background="#FF161B22"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/nfb_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FF7EE787"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true" />
+    </ScrollView>
+
+</LinearLayout>

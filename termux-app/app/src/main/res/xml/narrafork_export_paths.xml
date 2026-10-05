@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    用于「分享导出的备份包」的 FileProvider 路径白名单。
+
+    只暴露外部存储上的 NarraFork 导出目录与应用自己的 cache，不暴露 files/（那是
+    Termux 的 $PREFIX 与容器 rootfs 所在，包含全部用户数据，没有理由通过 content://
+    交给任意第三方应用）。
+-->
+<paths>
+    <external-path name="narrafork-export" path="NarraFork/" />
+    <cache-path name="narrafork-cache" path="." />
+</paths>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF0D1117">
+
+    <WebView
+        android:id="@+id/narrafork_webview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ProgressBar
+        android:id="@+id/narrafork_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/narrafork_error"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="24dp"
+        android:textColor="#FFC9D1D9"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
+    <!--
+        这里刻意不放"回菜单"的悬浮按钮。
+        NarraFork 页面自己左下角就有菜单键、右侧有抽屉，再叠一个只会重复且遮挡内容。
+        进入主菜单的入口改为桌面图标长按快捷方式（见 res/xml/shortcuts.xml），
+        它不占用 WebView 的任何视觉空间，且在 WebView 出问题时依然可达。
+    -->
+
+</FrameLayout>

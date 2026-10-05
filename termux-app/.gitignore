@@ -1,0 +1,47 @@
+# From https://gist.github.com/iainconnor/8605514
+# with the addition of the /captures below.
+/captures
+
+# Built application files
+build/
+release/
+*.apk
+*.so
+.externalNativeBuild
+.cxx
+*.zip
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Gradle generated files
+.gradle/
+
+# Signing files
+.signing/
+
+# Intellij
+.idea/
+*.iml
+
+# Vim
+*.swo
+*.swp
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.swp
+ehthumbs.db
+Thumbs.db
+
+# ==== NarraFork Box ====
+# 签名私钥：永不入库，CI 通过 secret 注入
+app/narrafork-release.jks
+# 内嵌 rootfs 资产（~137MB）：由 narrafork-android 仓的 rootfs 产物拷贝而来，构建前放入
+app/src/main/assets/narrafork-rootfs-arm64.bin
+# 本地构建产物
+dist/

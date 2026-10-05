@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    NarraFork 在本机 proot 容器里以明文 HTTP 提供服务（http://127.0.0.1:<port>）。
+    从 API 28 起 cleartext HTTP 默认被禁止，导致：
+      - Dashboard 的 /api/health 轮询被系统直接拦掉 → 状态灯永远显示「已停止」
+      - 内置 WebView 加载 http://127.0.0.1:<port> 会失败
+    这里只对回环地址开放明文，其余域名仍然禁止明文，不放大攻击面
+    （回环流量不出设备，不存在被中间人窃听的问题）。
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">::1</domain>
+    </domain-config>
+</network-security-config>

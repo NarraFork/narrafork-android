@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#FF0D1117">
+
+    <!-- 标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="NarraFork"
+        android:textColor="#FFE6EDF3"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <!-- 状态区 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="18dp">
+
+        <TextView
+            android:id="@+id/nf_status_dot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="○"
+            android:textSize="20sp"
+            android:textColor="#FF8B949E" />
+
+        <TextView
+            android:id="@+id/nf_status_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:text="未安装"
+            android:textColor="#FFC9D1D9"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- 端口配置 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:text="端口"
+        android:textColor="#FF8B949E"
+        android:textSize="13sp" />
+
+    <EditText
+        android:id="@+id/nf_port_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:inputType="number"
+        android:hint="7778"
+        android:textColor="#FFE6EDF3"
+        android:textColorHint="#FF6E7681"
+        android:backgroundTint="#FF30363D"
+        android:padding="12dp" />
+
+    <!-- 操作按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="18dp">
+
+        <Button
+            android:id="@+id/nf_btn_toggle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="启动" />
+
+        <Button
+            android:id="@+id/nf_btn_open"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="打开 NarraFork" />
+
+        <Button
+            android:id="@+id/nf_btn_terminal"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="终端" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/nf_btn_backup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="备份 / 恢复" />
+
+    <!-- 日志区 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:text="日志"
+        android:textColor="#FF8B949E"
+        android:textSize="13sp" />
+
+    <ScrollView
+        android:id="@+id/nf_log_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="6dp"
+        android:background="#FF161B22"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/nf_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FF7EE787"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true" />
+    </ScrollView>
+
+</LinearLayout>

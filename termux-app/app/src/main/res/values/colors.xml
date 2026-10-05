@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        NarraFork 品牌色。
+
+        与 NarraFork 前端保持一致（frontend/index.html 的 theme-color）：
+          暗色      #1a1b1e
+          OLED 暗色 #000000
+          亮色      #ffffff
+        Dashboard/备份界面自己的背景用的是 #0D1117 / #161B22 这套。
+
+        不复用 Termux 的 red_400/red_800：那是 Termux 的品牌色，状态栏显示成红色
+        与 NarraFork 的界面完全不搭（这正是要修的问题）。
+    -->
+    <color name="narrafork_bg">#FF0D1117</color>
+    <color name="narrafork_surface">#FF161B22</color>
+    <color name="narrafork_theme">#FF1A1B1E</color>
+    <color name="narrafork_accent">#FF58A6FF</color>
+    <color name="narrafork_on_primary">#FFE6EDF3</color>
+</resources>

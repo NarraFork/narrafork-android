@@ -1,0 +1,90 @@
+<shortcuts xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        For shortcut.xml:
+        If applicationId in build.gradle is changed from "com.termux", then targetPackage will
+        need to be manually patched since ${applicationId} variable or resource string does not work.
+        If package name in AndroidManifest is changed from "com.termux", then targetClass will
+        need to be manually patched since dot (.) prefix does not work to automatically prefix the
+        package name.
+    -->
+
+    <!--
+        NarraFork 主菜单（控制面板）。
+
+        正常使用路径是「点图标 → 直接进 WebView」，主菜单只在需要排查时才用得上
+        （WebView 打不开、要改端口、要备份/恢复、要看日志）。做成长按快捷方式，
+        既随时可达，又不占用 WebView 的任何视觉空间。
+
+        放在第一位：出问题时用户最需要它。
+    -->
+    <shortcut
+        android:shortcutId="narrafork_dashboard"
+        android:enabled="true"
+        android:icon="@drawable/ic_settings"
+        android:shortcutShortLabel="@string/nf_shortcut_dashboard_short"
+        android:shortcutLongLabel="@string/nf_shortcut_dashboard_long"
+        tools:targetApi="n_mr1">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.narrafork.box"
+            android:targetClass="com.termux.app.narrafork.NarraForkDashboardActivity" />
+    </shortcut>
+
+    <!-- 备份 / 恢复：数据搬迁是明确的独立意图，值得一个直达入口 -->
+    <shortcut
+        android:shortcutId="narrafork_backup"
+        android:enabled="true"
+        android:icon="@drawable/ic_settings"
+        android:shortcutShortLabel="@string/nf_shortcut_backup_short"
+        android:shortcutLongLabel="@string/nf_shortcut_backup_long"
+        tools:targetApi="n_mr1">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.narrafork.box"
+            android:targetClass="com.termux.app.narrafork.NarraForkBackupActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="new_session"
+        android:enabled="true"
+        android:icon="@drawable/ic_new_session"
+        android:shortcutShortLabel="@string/action_new_session"
+        tools:targetApi="n_mr1">
+        <intent
+            android:action="android.intent.action.RUN"
+            android:targetPackage="com.narrafork.box"
+            android:targetClass="com.termux.app.TermuxActivity"
+            android:name="android.shortcut.conversation"/>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="new_failsafe_session"
+        android:enabled="true"
+        android:icon="@drawable/ic_new_session"
+        android:shortcutShortLabel="@string/action_new_session_failsafe"
+        tools:targetApi="n_mr1">
+        <intent
+            android:action="android.intent.action.RUN"
+            android:targetPackage="com.narrafork.box"
+            android:targetClass="com.termux.app.TermuxActivity"
+            android:name="android.shortcut.conversation">
+            <extra android:name="com.termux.app.failsafe_session" android:value="true"/>
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_settings"
+        android:shortcutShortLabel="@string/action_open_settings"
+        tools:targetApi="n_mr1">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.narrafork.box"
+            android:targetClass="com.termux.app.activities.SettingsActivity"
+            android:name="android.shortcut.conversation"/>
+    </shortcut>
+
+</shortcuts>
