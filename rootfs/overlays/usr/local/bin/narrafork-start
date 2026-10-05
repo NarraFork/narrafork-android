@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+# NarraFork 启动器（proot 容器内）。
+#
+# 关键职责：应用内自更新会把新版二进制「并列」放在同目录（绝不覆盖），
+# 并在 ~/.narrafork/updates/placed-update.json 记录 newBinaryPath/sha512/sizeBytes。
+# 本启动器据此在多个并列二进制中选出「正确」的一个，再 exec 它。
+#
+# 选择顺序（取第一个通过健全性校验者）：
+#   1. placed-update.json 的 newBinaryPath（存在 + size 匹配 + 可执行）
+#   2. /opt/narrafork/ 下版本号最新的 narrafork-*-linux-arm64*
+#   3. 打包时装的 /opt/narrafork/narrafork
+set -euo pipefail
+
+export NARRAFORK_ANDROID="${NARRAFORK_ANDROID:-1}"
+export NARRAFORK_PROOT="${NARRAFORK_PROOT:-1}"
+export HOME="${HOME:-/root}"
+export HOST="${HOST:-0.0.0.0}"
+export PORT="${PORT:-7778}"
+
+APP_DIR="${NARRAFORK_APP_DIR:-/opt/narrafork}"
+NF_HOME="${NARRAFORK_HOME:-$HOME/.narrafork}"
+PLACED_JSON="$NF_HOME/updates/placed-update.json"
+
+mkdir -p "$NF_HOME" "$HOME/projects" 2>/dev/null || true
+
+log() { printf '[narrafork-start] %s\n' "$*" >&2; }
+
+# ── TLS 自动初始化 ───────────────────────────────────────────────────────────
+# NarraFork 的 TLS 默认关闭，而开启它的 API 端点都要求 admin 认证 —— 首次启动时
+# 还没有任何用户，所以走 API 是个死结。这里在服务启动前直接把证书和配置准备好：
+# 生成本机根 CA + 由它签发的服务器证书，并把 server.tls.* 写进 settings.json。
+#
+# 目的是让 App 内的 WebView 能「开箱即 HTTPS」：它只信任这张 CA（见 NarraForkTrust），
+# 因此无需把证书装进 Android 系统证书库。
+#
+# 幂等：证书已存在就不重新生成（重新生成会让已经信任旧 CA 的客户端失效）。
+init_tls() {
+	local dir="$NF_HOME/tls"
+	local ca="$dir/ca.pem" cakey="$dir/ca-key.pem"
+	local crt="$dir/cert.pem" key="$dir/key.pem"
+	local settings="$NF_HOME/settings.json"
+
+	command -v openssl >/dev/null 2>&1 || { log "无 openssl，跳过 TLS 初始化（将以明文运行）"; return 0; }
+
+	if [ -s "$ca" ] && [ -s "$crt" ] && [ -s "$key" ]; then
+		log "TLS 证书已存在，复用（CA: $ca）"
+	else
+		log "首次初始化 TLS：生成本机根 CA 与服务器证书…"
+		mkdir -p "$dir"; chmod 700 "$dir"
+
+		# 根 CA：basicConstraints CA:true + keyUsage keyCertSign,cRLSign
+		# （与 NarraFork 自身 lib/tls.ts 生成的结构保持一致）
+		openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes \
+			-keyout "$cakey" -out "$ca" \
+			-subj "/CN=NarraFork Local CA/O=NarraFork" \
+			-addext "basicConstraints=critical,CA:TRUE,pathlen:0" \
+			-addext "keyUsage=critical,keyCertSign,cRLSign" >/dev/null 2>&1 || {
+				log "CA 生成失败，改以明文运行"; return 0; }
+
+		# 服务器证书：SAN 覆盖回环与本机名；extKeyUsage=serverAuth
+		openssl req -newkey rsa:2048 -nodes -keyout "$key" -out "$dir/csr.pem" \
+			-subj "/CN=NarraFork/O=NarraFork" >/dev/null 2>&1 || {
+				log "服务器私钥/CSR 生成失败，改以明文运行"; return 0; }
+
+		printf '%s\n' \
+			"basicConstraints=CA:FALSE" \
+			"keyUsage=critical,digitalSignature,keyEncipherment" \
+			"extendedKeyUsage=serverAuth" \
+			"subjectAltName=DNS:localhost,DNS:narrafork.local,IP:127.0.0.1,IP:::1" \
+			> "$dir/ext.cnf"
+
+		openssl x509 -req -in "$dir/csr.pem" -CA "$ca" -CAkey "$cakey" \
+			-CAcreateserial -out "$crt" -days 3650 -sha256 \
+			-extfile "$dir/ext.cnf" >/dev/null 2>&1 || {
+				log "服务器证书签发失败，改以明文运行"; return 0; }
+
+		rm -f "$dir/csr.pem" "$dir/ext.cnf"
+		chmod 600 "$cakey" "$key" 2>/dev/null || true
+		chmod 644 "$ca" "$crt" 2>/dev/null || true
+		log "TLS 证书已生成（CA: $ca）"
+	fi
+
+	# 把 tls 配置写进 settings.json。
+	#
+	# 这里刻意不用 python3/jq：实测本 rootfs 里两者都没有（体积考量），依赖它们会让
+	# TLS 静默不启用 —— 证书生成了、配置没写，表现为「HTTPS 就是不生效」且没有报错。
+	# 改用 sed 做定点替换，只碰 server.tls 这三个字段。
+	if [ ! -s "$settings" ]; then
+		# 首次运行：settings.json 还不存在，直接写一份最小配置。
+		# NarraFork 启动时会与默认值深度合并，因此这里只需给出 tls 段。
+		cat > "$settings" <<EOF
+{
+	"server": {
+		"tls": {
+			"enabled": true,
+			"certFile": "$crt",
+			"keyFile": "$key"
+		}
+	}
+}
+EOF
+		log "已写入 TLS 配置（新建 settings.json）"
+		return 0
+	fi
+
+	# 已启用且路径一致：不重复改写（避免每次启动都动文件）
+	if grep -q '"enabled"[[:space:]]*:[[:space:]]*true' "$settings" \
+		&& grep -qF "$crt" "$settings"; then
+		log "TLS 配置已就绪"
+		return 0
+	fi
+
+	if grep -q '"tls"' "$settings"; then
+		# 已有 tls 段：只在该段内替换。
+		#
+		# 不能对整个文件做 s|"enabled": false|"enabled": true|：settings.json 里
+		# gateway/telemetry 等也有同名开关，全局替换会把它们一并打开（已实测确认）。
+		# 这里用 awk 跟踪花括号深度，仅在进入 "tls" 段后、离开之前改写。
+		awk -v crt="$crt" -v key="$key" '
+			BEGIN { in_tls = 0; depth = 0 }
+			{
+				line = $0
+				if (in_tls) {
+					if (line ~ /"enabled"[[:space:]]*:/) sub(/"enabled"[[:space:]]*:[[:space:]]*(true|false)/, "\"enabled\": true", line)
+					if (line ~ /"certFile"[[:space:]]*:/) sub(/"certFile"[[:space:]]*:[[:space:]]*"[^"]*"/, "\"certFile\": \"" crt "\"", line)
+					if (line ~ /"keyFile"[[:space:]]*:/)  sub(/"keyFile"[[:space:]]*:[[:space:]]*"[^"]*"/,  "\"keyFile\": \"" key "\"",  line)
+					# 统计本行括号变化，判断 tls 段是否结束
+					n = gsub(/\{/, "{", line); m = gsub(/\}/, "}", line)
+					depth += n - m
+					if (depth <= 0) in_tls = 0
+				} else if (line ~ /"tls"[[:space:]]*:/) {
+					# 进入 tls 段（同一行内的单行写法也要能处理）
+					if (line ~ /"enabled"[[:space:]]*:/) sub(/"enabled"[[:space:]]*:[[:space:]]*(true|false)/, "\"enabled\": true", line)
+					if (line ~ /"certFile"[[:space:]]*:/) sub(/"certFile"[[:space:]]*:[[:space:]]*"[^"]*"/, "\"certFile\": \"" crt "\"", line)
+					if (line ~ /"keyFile"[[:space:]]*:/)  sub(/"keyFile"[[:space:]]*:[[:space:]]*"[^"]*"/,  "\"keyFile\": \"" key "\"",  line)
+					n = gsub(/\{/, "{", line); m = gsub(/\}/, "}", line)
+					depth = n - m
+					if (depth > 0) in_tls = 1
+				}
+				print line
+			}
+		' "$settings" > "$settings.tmp" 2>/dev/null \
+			&& mv "$settings.tmp" "$settings" \
+			&& log "已更新 TLS 配置" \
+			|| { rm -f "$settings.tmp"; log "更新 TLS 配置失败（将以明文运行）"; }
+	else
+		# 有 settings.json 但没有 tls 段：在 "server" 对象开头插入
+		sed -i "s|\"server\"[[:space:]]*:[[:space:]]*{|\"server\": {\n\t\t\"tls\": { \"enabled\": true, \"certFile\": \"$crt\", \"keyFile\": \"$key\" },|" \
+			"$settings" && log "已插入 TLS 配置" || log "插入 TLS 配置失败（将以明文运行）"
+	fi
+}
+
+init_tls
+
+# 从 placed-update.json 提取一个字符串字段（容忍无 jq/python 的最小环境）。
+json_str() { # $1=file $2=key
+	sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$1" | head -n1
+}
+json_num() { # $1=file $2=key
+	sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p" "$1" | head -n1
+}
+
+# 校验候选二进制：存在、是普通文件、可执行、大小与记录一致。
+valid_binary() { # $1=path $2=expectedSize(可空)
+	[ -n "$1" ] || return 1
+	[ -f "$1" ] || return 1
+	[ -x "$1" ] || return 1
+	if [ -n "${2:-}" ]; then
+		local actual
+		actual="$(stat -c %s "$1" 2>/dev/null || echo 0)"
+		[ "$actual" = "$2" ] || return 1
+	fi
+	return 0
+}
+
+pick_binary() {
+	# 1) 自更新记录里的 newBinaryPath
+	if [ -f "$PLACED_JSON" ]; then
+		local nb size
+		nb="$(json_str "$PLACED_JSON" newBinaryPath)"
+		size="$(json_num "$PLACED_JSON" sizeBytes)"
+		if valid_binary "$nb" "$size"; then
+			printf '%s' "$nb"; return 0
+		fi
+		log "placed-update.json 记录的 newBinaryPath 未通过校验，忽略（nb=${nb:-空}）。"
+	fi
+
+	# 2) 目录里版本号最新的 narrafork-*-linux-arm64*
+	local newest
+	newest="$(find "$APP_DIR" -maxdepth 1 -type f -name 'narrafork-*-linux-arm64*' -executable 2>/dev/null \
+		| sort -V | tail -n1)"
+	if [ -n "$newest" ] && valid_binary "$newest" ""; then
+		printf '%s' "$newest"; return 0
+	fi
+
+	# 3) 打包时装入的固定名
+	if valid_binary "$APP_DIR/narrafork" ""; then
+		printf '%s' "$APP_DIR/narrafork"; return 0
+	fi
+
+	return 1
+}
+
+BIN="$(pick_binary)" || { log "未找到可用的 narrafork 二进制（目录 $APP_DIR）。"; exit 1; }
+log "启动二进制: $BIN (host=$HOST port=$PORT)"
+exec "$BIN" --host="$HOST" --port="$PORT" "$@"

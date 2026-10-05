@@ -1,0 +1,8 @@
+# 构建产物与预打包二进制（体积大，不入库；由 scripts/build-*.ts 重新生成）
+dist/
+rootfs/overlays/opt/narrafork/narrafork
+rootfs/overlays/opt/narrafork/binary-info.json
+
+# 依赖与临时文件
+node_modules/
+*.log

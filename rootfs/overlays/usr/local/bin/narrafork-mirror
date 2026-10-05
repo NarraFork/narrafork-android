@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# Debian 12 (deb822) 镜像源切换器。
+#
+# 用法：
+#   narrafork-mirror list           列出可用镜像并标出当前
+#   narrafork-mirror current        只打印当前镜像名
+#   narrafork-mirror <name>         切换到指定镜像（tuna/ustc/aliyun/huawei/tencent/nju/bfsu/official）
+#
+# 只改 /etc/apt/sources.list.d/debian.sources 的 URIs 字段；security 源按镜像自动派生
+# （大多数国内镜像同时托管 debian-security，路径为 <base>-security）。
+set -euo pipefail
+
+SRC="/etc/apt/sources.list.d/debian.sources"
+
+# name|base_url   （base_url 不含结尾斜杠；security 源 = base_url + "-security"）
+MIRRORS=$(
+	cat <<'EOF'
+tuna|https://mirrors.tuna.tsinghua.edu.cn/debian
+ustc|https://mirrors.ustc.edu.cn/debian
+aliyun|https://mirrors.aliyun.com/debian
+huawei|https://mirrors.huaweicloud.com/debian
+tencent|https://mirrors.cloud.tencent.com/debian
+nju|https://mirror.nju.edu.cn/debian
+bfsu|https://mirrors.bfsu.edu.cn/debian
+official|http://deb.debian.org/debian
+EOF
+)
+
+log() { printf '[narrafork-mirror] %s\n' "$*" >&2; }
+die() { log "错误: $*"; exit 1; }
+
+[ -f "$SRC" ] || die "未找到 $SRC（本工具面向 Debian 12 deb822 格式）"
+
+# 若当前系统缺 CA 证书，https 源无法握手；此时用同名镜像的 http 变体。
+has_ca() { [ -e /etc/ssl/certs/ca-certificates.crt ] || command -v update-ca-certificates >/dev/null 2>&1; }
+
+base_of() { # $1=name -> base_url
+	while IFS='|' read -r n b; do
+		[ "$n" = "$1" ] && { printf '%s' "$b"; return 0; }
+	done <<<"$MIRRORS"
+	return 1
+}
+
+current_base() { # 从 .sources 提取当前 main 源（debian 非 security 那条）的 base
+	awk '/^URIs:/ {print $2}' "$SRC" | grep -v -- '-security' | head -n1
+}
+
+current_name() {
+	local base; base="$(current_base)"
+	[ -n "$base" ] || { printf 'unknown'; return 0; }
+	while IFS='|' read -r n b; do
+		# 命中 http/https 任一变体
+		if [ "$base" = "$b" ] || [ "$base" = "${b/https:/http:}" ]; then
+			printf '%s' "$n"; return 0
+		fi
+	done <<<"$MIRRORS"
+	printf 'custom'
+}
+
+cmd_list() {
+	local cur; cur="$(current_name)"
+	while IFS='|' read -r n b; do
+		if [ "$n" = "$cur" ]; then printf '* %-9s %s\n' "$n" "$b"; else printf '  %-9s %s\n' "$n" "$b"; fi
+	done <<<"$MIRRORS"
+}
+
+cmd_switch() { # $1=name
+	local name="$1"
+	local base; base="$(base_of "$name")" || die "未知镜像 '$name'（用 list 查看可用项）"
+
+	# 无 CA 证书时强制 http，避免 apt-get update 握手失败。
+	if [ "${base#https://}" != "$base" ] && ! has_ca; then
+		log "未检测到 CA 证书，改用 http 变体（装好 ca-certificates 后可再切换回 https）。"
+		base="http://${base#https://}"
+	fi
+
+	local security="${base}-security"
+	[ "$name" = "official" ] && security="http://deb.debian.org/debian-security"
+
+	cp -a "$SRC" "${SRC}.bak"
+	# deb822 的 block 内 URIs 出现在 Suites 之前，单行流式无法预知本块是否 security；
+	# 且目标是 mawk（无 gsub 的 /m 多行修饰符）。按空行分隔的 stanza 读入整块，
+	# 先判定 Suites 是否含 -security，再逐行重写该块的 URIs。
+	awk -v main="$base" -v sec="$security" '
+		BEGIN{RS=""; ORS=""; FS="\n"}
+		{
+			sec_blk = ($0 ~ /(^|\n)Suites:[^\n]*-security/)
+			target = sec_blk ? sec : main
+			for (i=1; i<=NF; i++) {
+				if ($i ~ /^URIs:/) $i = "URIs: " target
+				print $i "\n"
+			}
+			print "\n"
+		}
+	' "$SRC" > "${SRC}.tmp"
+	mv "${SRC}.tmp" "$SRC"
+	log "已切换到 $name（$base），备份在 ${SRC}.bak"
+}
+
+case "${1:-}" in
+	list | -l | "") cmd_list ;;
+	current) current_name; printf '\n' ;;
+	official | tuna | ustc | aliyun | huawei | tencent | nju | bfsu) cmd_switch "$1" ;;
+	-h | --help)
+		grep '^#' "$0" | sed 's/^# \{0,1\}//'
+		;;
+	*) die "未知参数 '$1'（用 --help 查看用法）" ;;
+esac

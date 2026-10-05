@@ -1,0 +1,31 @@
+{
+	"comment": "NarraFork Android 镜像源目录。install.sh 与 rootfs 内的 narrafork-mirror 共用此清单。",
+	"termux": {
+		"description": "Termux 主仓库镜像（写入 $PREFIX/etc/termux/chosen_mirrors）",
+		"mirrors": {
+			"tuna": "https://mirrors.tuna.tsinghua.edu.cn/termux/apt/termux-main",
+			"ustc": "https://mirrors.ustc.edu.cn/termux/apt/termux-main",
+			"bfsu": "https://mirrors.bfsu.edu.cn/termux/apt/termux-main",
+			"official": "https://packages.termux.dev/apt/termux-main"
+		},
+		"default": "tuna"
+	},
+	"debian": {
+		"description": "Debian 12 (bookworm) apt 镜像，deb822 格式（/etc/apt/sources.list.d/debian.sources）",
+		"mirrors": {
+			"tuna": "https://mirrors.tuna.tsinghua.edu.cn/debian",
+			"ustc": "https://mirrors.ustc.edu.cn/debian",
+			"aliyun": "https://mirrors.aliyun.com/debian",
+			"huawei": "https://mirrors.huaweicloud.com/debian",
+			"tencent": "https://mirrors.cloud.tencent.com/debian",
+			"nju": "https://mirror.nju.edu.cn/debian",
+			"bfsu": "https://mirrors.bfsu.edu.cn/debian",
+			"official": "http://deb.debian.org/debian"
+		},
+		"securitySuffix": "-security",
+		"suites": ["bookworm", "bookworm-updates"],
+		"securitySuite": "bookworm-security",
+		"components": ["main"],
+		"default": "tuna"
+	}
+}

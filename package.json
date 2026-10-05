@@ -1,0 +1,13 @@
+{
+	"name": "narrafork-android",
+	"version": "0.1.0",
+	"description": "即开即用的 NarraFork Android 运行环境（Termux + proot Debian 12）",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"build:binary": "bun scripts/build-binary.ts",
+		"build:rootfs": "bun scripts/build-rootfs.ts",
+		"build": "bun scripts/build-binary.ts && bun scripts/build-rootfs.ts",
+		"verify": "bash tests/verify-rootfs.sh"
+	}
+}
